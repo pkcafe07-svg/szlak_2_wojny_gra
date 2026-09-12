@@ -1,0 +1,1016 @@
+<!DOCTYPE html>
+<html lang="pl">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+  <title>Szlak II Wojny Światowej - Gra Edukacyjna</title>
+  <script src="https://cdn.tailwindcss.com"></script>
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;600;700;800;900&family=Cinzel:wght@700;900&display=swap" rel="stylesheet">
+  <style>
+    body {
+      font-family: 'Inter', sans-serif;
+      -webkit-tap-highlight-color: transparent;
+      user-select: none;
+    }
+    .font-cinzel {
+      font-family: 'Cinzel', serif;
+    }
+    .board-scroll {
+      scrollbar-width: thin;
+      scrollbar-color: #4b5563 #1f2937;
+    }
+    .board-scroll::-webkit-scrollbar {
+      width: 6px;
+    }
+    .board-scroll::-webkit-scrollbar-thumb {
+      background-color: #4b5563;
+      border-radius: 9999px;
+    }
+    @keyframes pulse-ring {
+      0% { transform: scale(0.95); opacity: 0.8; }
+      50% { transform: scale(1.05); opacity: 0.4; }
+      100% { transform: scale(0.95); opacity: 0.8; }
+    }
+    .pulse-animation {
+      animation: pulse-ring 2s infinite ease-in-out;
+    }
+    @keyframes roll-dice {
+      0% { transform: rotate(0deg) scale(1); }
+      25% { transform: rotate(90deg) scale(1.15); }
+      50% { transform: rotate(180deg) scale(0.9); }
+      75% { transform: rotate(270deg) scale(1.1); }
+      100% { transform: rotate(360deg) scale(1); }
+    }
+    .dice-rolling {
+      animation: roll-dice 0.6s ease-out;
+    }
+  </style>
+</head>
+<body class="bg-slate-950 text-slate-100 min-h-screen flex flex-col justify-between overflow-x-hidden antialiased selection:bg-amber-500 selection:text-slate-950">
+
+  <header class="bg-slate-900/90 backdrop-blur border-b border-slate-800 sticky top-0 z-30 px-4 py-3 flex items-center justify-between shadow-md">
+    <div class="flex items-center space-x-2">
+      <div class="w-8 h-8 rounded-lg bg-amber-600 flex items-center justify-center text-slate-950 font-bold shadow">
+        ⚔️
+      </div>
+      <div>
+        <h1 class="text-xs uppercase tracking-wider text-amber-500 font-semibold">Klasa 8 • Historia</h1>
+        <p class="text-sm font-bold tracking-tight text-white">Szlak II Wojny Światowej</p>
+      </div>
+    </div>
+    <div class="flex items-center space-x-2">
+      <button id="soundToggleBtn" class="p-2 rounded-lg bg-slate-800 hover:bg-slate-700 text-slate-300 transition text-sm flex items-center justify-center border border-slate-700">
+        <span id="soundIcon">🔊</span>
+      </button>
+      <button id="rulesBtn" class="p-2 rounded-lg bg-slate-800 hover:bg-slate-700 text-slate-300 transition text-sm flex items-center justify-center border border-slate-700" title="Zasady">
+        ℹ️
+      </button>
+    </div>
+  </header>
+
+  <div id="playerStatusBar" class="hidden bg-slate-900 border-b border-slate-800 px-4 py-2 flex justify-around items-center text-xs z-20 sticky top-[57px] shadow-sm">
+    <div id="p1Badge" class="flex items-center space-x-2 px-3 py-1.5 rounded-lg border-2 border-emerald-500/80 bg-emerald-950/40 transition-all">
+      <span class="w-3 h-3 rounded-full bg-emerald-500 inline-block shadow"></span>
+      <div>
+        <div class="font-bold text-emerald-400" id="p1DisplayTag">Gracz 1</div>
+        <div class="text-[11px] text-slate-400">Pole: <span id="p1Pos" class="font-bold text-white">0</span> | Pkt: <span id="p1Score" class="font-bold text-emerald-300">0</span></div>
+      </div>
+    </div>
+
+    <div class="text-slate-600 font-black">VS</div>
+
+    <div id="p2Badge" class="flex items-center space-x-2 px-3 py-1.5 rounded-lg border-2 border-transparent bg-slate-800/40 transition-all opacity-60">
+      <span class="w-3 h-3 rounded-full bg-cyan-500 inline-block shadow"></span>
+      <div>
+        <div class="font-bold text-cyan-400" id="p2DisplayTag">Gracz 2</div>
+        <div class="text-[11px] text-slate-400">Pole: <span id="p2Pos" class="font-bold text-white">0</span> | Pkt: <span id="p2Score" class="font-bold text-cyan-300">0</span></div>
+      </div>
+    </div>
+  </div>
+
+  <main class="flex-1 max-w-md w-full mx-auto relative flex flex-col p-4">
+
+    <!-- EKRAN 1: KONFIGURACJA POCZĄTKOWA -->
+    <section id="startScreen" class="flex-1 flex flex-col justify-center space-y-5 my-auto">
+      <div class="text-center space-y-2">
+        <div class="inline-block p-4 rounded-2xl bg-amber-500/10 border border-amber-500/30 mb-2">
+          <span class="text-5xl">🎖️</span>
+        </div>
+        <h2 class="text-2xl font-black text-amber-400 uppercase tracking-tight font-cinzel">Szlak Zwycięstwa</h2>
+        <p class="text-xs text-slate-400 max-w-xs mx-auto">
+          Edukacyjna gra planszowa dla 2 uczniów przy jednej ławce. Odpowiadajcie na pytania, zdobywajcie punkty i przejdźcie cały szlak II wojny światowej!
+        </p>
+      </div>
+
+      <div class="bg-slate-900 border border-slate-800 rounded-2xl p-4 shadow-xl space-y-4">
+        <div>
+          <label class="block text-xs font-semibold text-emerald-400 mb-1 flex items-center">
+            <span class="w-2.5 h-2.5 rounded-full bg-emerald-500 inline-block mr-1.5"></span>
+            Gracz 1 (Pionek Zielony)
+          </label>
+          <input id="player1Input" type="text" value="Dywizjon 303" maxlength="15" 
+            class="w-full bg-slate-950 border border-slate-700 rounded-xl px-3 py-2 text-sm text-white focus:outline-none focus:border-emerald-500 transition">
+        </div>
+
+        <div>
+          <label class="block text-xs font-semibold text-cyan-400 mb-1 flex items-center">
+            <span class="w-2.5 h-2.5 rounded-full bg-cyan-500 inline-block mr-1.5"></span>
+            Gracz 2 (Pionek Błękitny)
+          </label>
+          <input id="player2Input" type="text" value="Cichociemni" maxlength="15" 
+            class="w-full bg-slate-950 border border-slate-700 rounded-xl px-3 py-2 text-sm text-white focus:outline-none focus:border-cyan-500 transition">
+        </div>
+
+        <div class="bg-slate-950/60 p-3 rounded-xl border border-slate-800/80 text-[11px] text-slate-400 space-y-1">
+          <p class="font-semibold text-amber-400">📱 Tryb Pass & Play:</p>
+          <p>• Rzucacie kością (1-4) i odpowiadacie na pytania z rozdziału 1.</p>
+          <p>• Dobra odpowiedź = punkty i stabilna pozycja. Błąd = cofnięcie!</p>
+          <p>• Po każdej turze przekazujecie telefon drugiemu graczowi.</p>
+        </div>
+
+        <button id="startGameBtn" class="w-full py-3.5 px-4 bg-gradient-to-r from-amber-600 to-amber-500 hover:from-amber-500 hover:to-amber-400 text-slate-950 font-black rounded-xl shadow-lg transition transform active:scale-98 text-sm uppercase tracking-wider flex items-center justify-center space-x-2">
+          <span>Rozpocznij Rozgrywkę</span>
+          <span>➔</span>
+        </button>
+      </div>
+    </section>
+
+    <section id="gameBoardScreen" class="hidden flex-1 flex flex-col justify-between space-y-3 pb-2">
+      <!-- Info banner -->
+      <div id="turnBanner" class="bg-slate-900/90 border border-slate-800 rounded-xl p-2.5 text-center shadow flex items-center justify-between">
+        <div class="flex items-center space-x-2">
+          <div id="activePlayerIndicator" class="w-3.5 h-3.5 rounded-full bg-emerald-500 ring-4 ring-emerald-500/20 animate-pulse"></div>
+          <span class="text-xs font-bold text-slate-300">Tura: <strong id="activePlayerName" class="text-emerald-400 font-extrabold">Gracz 1</strong></span>
+        </div>
+        <span id="turnActionHint" class="text-[11px] bg-slate-800 text-amber-400 font-medium px-2 py-0.5 rounded-md border border-slate-700">Rzuć kością!</span>
+      </div>
+
+      <!-- Kafelki toru planszy -->
+      <div id="boardContainer" class="board-scroll flex-1 max-h-[52vh] overflow-y-auto pr-1 space-y-2 py-1">
+        <!-- Generowane dynamicznie przez JS -->
+      </div>
+
+      <div class="bg-slate-900 border border-slate-800 rounded-2xl p-3.5 shadow-2xl flex items-center justify-between space-x-3">
+        <div class="flex items-center space-x-3">
+          <div id="diceCube" class="w-14 h-14 bg-gradient-to-br from-amber-500 to-amber-600 rounded-2xl flex items-center justify-center text-slate-950 font-black text-2xl shadow-inner border border-amber-300 transition cursor-pointer">
+            🎲
+          </div>
+          <div>
+            <div class="text-xs text-slate-400">Ruch o (1-4 pola):</div>
+            <div id="diceResultText" class="text-sm font-black text-white">Gotowy do rzutu</div>
+          </div>
+        </div>
+
+        <button id="rollDiceBtn" class="py-3 px-5 bg-gradient-to-r from-emerald-600 to-emerald-500 hover:from-emerald-500 hover:to-emerald-400 text-white font-bold rounded-xl shadow-lg transition active:scale-95 text-xs uppercase tracking-wider">
+          Rzuć Kością
+        </button>
+      </div>
+    </section>
+
+    <div id="handoverModal" class="hidden fixed inset-0 bg-slate-950/95 z-50 flex items-center justify-center p-4">
+      <div class="bg-slate-900 border-2 border-slate-700 w-full max-w-sm rounded-3xl p-6 text-center space-y-5 shadow-2xl">
+        <div class="w-16 h-16 rounded-full mx-auto flex items-center justify-center text-3xl border-2" id="handoverAvatar">
+          📱
+        </div>
+        <div class="space-y-1">
+          <h3 class="text-xs uppercase font-bold tracking-widest text-slate-400">Koniec tury</h3>
+          <h2 class="text-xl font-black text-white">Przekaż telefon koledze/koleżance!</h2>
+          <p class="text-xs text-slate-400 pt-1">
+            Teraz kolej na gracza: <strong id="nextPlayerName" class="text-cyan-400 text-sm">Cichociemni</strong>
+          </p>
+        </div>
+
+        <div class="p-3 bg-slate-950 rounded-xl border border-slate-800 text-xs text-amber-300">
+          Usiądźcie wygodnie i nie podglądajcie odpowiedzi rywala!
+        </div>
+
+        <button id="handoverConfirmBtn" class="w-full py-3.5 bg-gradient-to-r from-amber-500 to-amber-600 text-slate-950 font-black rounded-xl uppercase tracking-wider text-xs shadow hover:from-amber-400 hover:to-amber-500 transition active:scale-95">
+          Przejąłem telefon • Zaczynamy!
+        </button>
+      </div>
+    </div>
+
+    <div id="questionModal" class="hidden fixed inset-0 bg-slate-950/90 backdrop-blur-sm z-40 flex items-center justify-center p-4">
+      <div class="bg-slate-900 border border-slate-700 w-full max-w-sm rounded-3xl p-5 space-y-4 shadow-2xl max-h-[90vh] overflow-y-auto">
+        <div class="flex items-center justify-between border-b border-slate-800 pb-2">
+          <span id="questionCategoryBadge" class="text-[10px] font-bold uppercase tracking-wider px-2 py-0.5 rounded bg-amber-500/20 text-amber-400 border border-amber-500/30">
+            Pole Wiedzy
+          </span>
+          <span id="questionTimer" class="text-xs font-semibold text-slate-400">Tura: <strong id="questionPlayerTag" class="text-emerald-400">Gracz 1</strong></span>
+        </div>
+
+        <div class="space-y-1">
+          <h4 id="questionTitle" class="text-xs font-bold text-slate-400 uppercase tracking-tight">Pytanie z podręcznika:</h4>
+          <p id="questionText" class="text-sm font-semibold text-white leading-snug">
+            Treść pytania historycznego...
+          </p>
+        </div>
+
+        <!-- Kontener opcji odpowiedzi -->
+        <div id="optionsContainer" class="space-y-2 pt-1">
+          <!-- Wstrzykiwane przez JS -->
+        </div>
+
+        <!-- Panel wyjaśnienia po odpowiedzi -->
+        <div id="feedbackContainer" class="hidden p-3 rounded-xl text-xs space-y-2 border">
+          <div id="feedbackTitle" class="font-bold flex items-center space-x-1"></div>
+          <p id="feedbackExplanation" class="text-slate-300 leading-relaxed text-[11px]"></p>
+          <button id="closeQuestionBtn" class="w-full mt-2 py-2.5 bg-slate-800 hover:bg-slate-700 text-white font-bold rounded-lg uppercase tracking-wider text-xs transition">
+            Dalej ➔
+          </button>
+        </div>
+      </div>
+    </div>
+
+    <section id="victoryScreen" class="hidden flex-1 flex flex-col justify-center text-center space-y-5 my-auto">
+      <div class="w-20 h-20 mx-auto rounded-full bg-amber-500/20 border-2 border-amber-400 flex items-center justify-center text-4xl shadow-xl">
+        🏆
+      </div>
+      <div>
+        <h2 class="text-2xl font-black text-amber-400 uppercase tracking-tight font-cinzel">Koniec Wojny!</h2>
+        <p class="text-xs text-slate-400">II wojna światowa zakończyła się kapitulacją Japonii (2 IX 1945 r.).</p>
+      </div>
+
+      <div class="bg-slate-900 border border-slate-800 rounded-2xl p-5 space-y-4 shadow-xl text-left">
+        <h3 class="text-xs uppercase font-bold text-slate-400 tracking-wider text-center border-b border-slate-800 pb-2">Wyniki Końcowe</h3>
+        
+        <div id="winnerBanner" class="p-3 rounded-xl bg-gradient-to-r from-amber-500/20 to-amber-600/10 border border-amber-500/40 text-center">
+          <span class="text-xs text-amber-400 font-bold uppercase">Zwycięzca:</span>
+          <div id="winnerText" class="text-lg font-black text-white">Gracz 1</div>
+        </div>
+
+        <div class="grid grid-cols-2 gap-3 text-center">
+          <div class="p-3 bg-slate-950 rounded-xl border border-slate-800">
+            <div id="vP1Name" class="text-xs font-bold text-emerald-400 truncate">Gracz 1</div>
+            <div id="vP1Score" class="text-xl font-black text-white mt-1">0 pkt</div>
+            <div class="text-[10px] text-slate-500" id="vP1Pos">Pole 24</div>
+          </div>
+          <div class="p-3 bg-slate-950 rounded-xl border border-slate-800">
+            <div id="vP2Name" class="text-xs font-bold text-cyan-400 truncate">Gracz 2</div>
+            <div id="vP2Score" class="text-xl font-black text-white mt-1">0 pkt</div>
+            <div class="text-[10px] text-slate-500" id="vP2Pos">Pole 18</div>
+          </div>
+        </div>
+
+        <div class="bg-slate-950/80 p-3 rounded-xl border border-slate-800 text-[11px] text-slate-400">
+          💡 <em>Świetna robota! Oboje utrwaliliście kluczowe fakty, pojęcia i postacie z rozdziału 1. Jesteście gotowi na sprawdzian!</em>
+        </div>
+
+        <button id="restartGameBtn" class="w-full py-3.5 bg-amber-500 hover:bg-amber-400 text-slate-950 font-black rounded-xl uppercase tracking-wider text-xs shadow transition active:scale-98">
+          Zagraj Ponownie
+        </button>
+      </div>
+    </section>
+
+    <!-- Modal Zasad Gry -->
+    <div id="rulesModal" class="hidden fixed inset-0 bg-slate-950/90 z-50 flex items-center justify-center p-4">
+      <div class="bg-slate-900 border border-slate-700 w-full max-w-sm rounded-3xl p-5 space-y-3 shadow-2xl max-h-[85vh] overflow-y-auto text-xs text-slate-300">
+        <div class="flex justify-between items-center border-b border-slate-800 pb-2">
+          <h3 class="font-bold text-sm text-white">📜 Zasady gry „Pass & Play”</h3>
+          <button id="closeRulesBtn" class="p-1 text-slate-400 hover:text-white">✕</button>
+        </div>
+        <p><strong>Cel gry:</strong> Dotrzeć do pola 24 (Koniec wojny) zdobywając jak najwięcej punktów wiedzy.</p>
+        <div class="space-y-1 bg-slate-950 p-2.5 rounded-xl border border-slate-800">
+          <p class="text-amber-400 font-semibold">Struktura tury:</p>
+          <p>1. Gracz klika „Rzuć Kością” (zakres 1–4).</p>
+          <p>2. Pionek przesuwa się po torze wydarzeń.</p>
+          <p>3. Rozwiązujesz wylosowane pytanie lub pole szansy.</p>
+          <p>4. <strong>Dobra odpowiedź:</strong> +10 pkt i bezpieczna pozycja.</p>
+          <p>5. <strong>Błąd:</strong> 0 pkt i cofnięcie o 1 pole!</p>
+          <p>6. Przekazujesz telefon partnerowi z ławki.</p>
+        </div>
+        <p class="text-[11px] text-slate-400">Gra obejmuje materiał: Napaść na Polskę, Podbój Europy, Wojnę z ZSRS, Politykę okupacyjną i Zagładę, Wojnę poza Europą oraz Drogę do Zwycięstwa.</p>
+        <button id="rulesGotItBtn" class="w-full py-2.5 bg-slate-800 hover:bg-slate-700 text-white font-bold rounded-lg">Rozumiem</button>
+      </div>
+    </div>
+
+  </main>
+
+  <footer class="text-center py-2 text-[10px] text-slate-600 border-t border-slate-900 bg-slate-950">
+    Rozdział 1: II Wojna Światowa • Tryb partnerski dla 2 uczniów
+  </footer>
+
+  <script>
+    // --- PROSTY SYNTEZATOR DŹWIĘKÓW WEB AUDIO API (BEZ ZEWNĘTRZNYCH PLIKÓW) ---
+    const AudioContext = window.AudioContext || window.webkitAudioContext;
+    let audioCtx = null;
+    let soundEnabled = true;
+
+    function initAudio() {
+      if (!audioCtx) {
+        audioCtx = new AudioContext();
+      }
+      if (audioCtx.state === 'suspended') {
+        audioCtx.resume();
+      }
+    }
+
+    function playTone(freq, type, duration, delay = 0) {
+      if (!soundEnabled) return;
+      try {
+        initAudio();
+        const osc = audioCtx.createOscillator();
+        const gain = audioCtx.createGain();
+        osc.type = type;
+        osc.frequency.setValueAtTime(freq, audioCtx.currentTime + delay);
+        gain.gain.setValueAtTime(0.12, audioCtx.currentTime + delay);
+        gain.gain.exponentialRampToValueAtTime(0.001, audioCtx.currentTime + delay + duration);
+        osc.connect(gain);
+        gain.connect(audioCtx.destination);
+        osc.start(audioCtx.currentTime + delay);
+        osc.stop(audioCtx.currentTime + delay + duration);
+      } catch (e) {
+        // Cichy fallback jeśli przeglądarka blokuje
+      }
+    }
+
+    function playSound(type) {
+      if (!soundEnabled) return;
+      if (type === 'dice') {
+        playTone(300, 'triangle', 0.08, 0);
+        playTone(420, 'triangle', 0.08, 0.09);
+        playTone(550, 'triangle', 0.1, 0.18);
+      } else if (type === 'correct') {
+        playTone(523.25, 'sine', 0.1, 0);       // C5
+        playTone(659.25, 'sine', 0.12, 0.1);     // E5
+        playTone(783.99, 'sine', 0.25, 0.2);     // G5
+      } else if (type === 'wrong') {
+        playTone(220, 'sawtooth', 0.15, 0);
+        playTone(180, 'sawtooth', 0.25, 0.15);
+      } else if (type === 'step') {
+        playTone(400, 'sine', 0.05, 0);
+      } else if (type === 'victory') {
+        playTone(440, 'triangle', 0.12, 0);
+        playTone(554.37, 'triangle', 0.12, 0.12);
+        playTone(659.25, 'triangle', 0.15, 0.24);
+        playTone(880, 'triangle', 0.35, 0.36);
+      }
+    }
+
+    const boardTiles = [
+      { id: 0, title: "Start: 1 IX 1939", type: "start", desc: "Wybuch II wojny światowej", icon: "🚩" },
+      { id: 1, title: "Westerplatte i Mokra", type: "quiz", desc: "Bohaterstwo pierwszych dni", icon: "⚔️" },
+      { id: 2, title: "Dziwna Wojna", type: "true_false", desc: "Postawa sojuszników zachodnich", icon: "⏳" },
+      { id: 3, title: "Polskie Termopile (Wizna)", type: "quiz", desc: "Heroiczny opór kapitana Raginisa", icon: "🛡️" },
+      { id: 4, title: "Napaść ZSRS 17 IX", type: "quiz", desc: "Cios w plecy i upadek obrony", icon: "💥" },
+      { id: 5, title: "Złamanie Enigmy!", type: "chance", desc: "Sukces polskich kryptologów (+2 pola)", icon: "📻" },
+      { id: 6, title: "Wojna Zimowa", type: "true_false", desc: "Opór Finlandii przeciw ZSRS", icon: "❄️" },
+      { id: 7, title: "Narwik i Dunkierka", type: "quiz", desc: "Walki w Skandynawii i ewakuacja", icon: "🚢" },
+      { id: 8, title: "Bitwa o Anglię (1940)", type: "quiz", desc: "Spitfire i Dywizjon 303", icon: "✈️" },
+      { id: 9, title: "Błoto pod Moskwą!", type: "penalty", desc: "Sroga rosyjska zima i odwrót (-1 pole)", icon: "🌨️" },
+      { id: 10, title: "Plan „Barbarossa”", type: "true_false", desc: "Atak Hitlera na ZSRS w 1941 r.", icon: "🗺️" },
+      { id: 11, title: "Pearl Harbor (7 XII 1941)", type: "quiz", desc: "Przystąpienie USA do wojny", icon: "⚓" },
+      { id: 12, title: "Bitwa pod El Alamein", type: "quiz", desc: "Przełom na pustyni w Afryce", icon: "🏜️" },
+      { id: 13, title: "Bitwa o Atlantyk", type: "true_false", desc: "Wilcze stada i alianckie konwoje", icon: "🌊" },
+      { id: 14, title: "Zwrot pod Stalingradem", type: "quiz", desc: "Klęska armii niemieckiej nad Wołgą", icon: "🎯" },
+      { id: 15, title: "Ustawa Lend-Lease", type: "chance", desc: "Amerykańskie wsparcie sprzętowe (+10 pkt)", icon: "📦" },
+      { id: 16, title: "Łuk Kurski (1943)", type: "true_false", desc: "Największa bitwa pancerna", icon: "💥" },
+      { id: 17, title: "Ruch Oporu i Zagłada", type: "quiz", desc: "Polityka terroru i Rada „Żegota”", icon: "🕯️" },
+      { id: 18, title: "Klasztor Monte Cassino", type: "quiz", desc: "Zwycięstwo 2. Korpusu Polskiego", icon: "⛰️" },
+      { id: 19, title: "Lądowanie w Normandii", type: "quiz", desc: "D-Day: otwarcie drugiego frontu", icon: "🪖" },
+      { id: 20, title: "Operacja Market Garden", type: "penalty", desc: "Ciężkie walki pod Arnhem (-1 pole)", icon: "🪂" },
+      { id: 21, title: "Konferencja w Jałcie", type: "quiz", desc: "Decyzje Wielkiej Trójki o granicach", icon: "🤝" },
+      { id: 22, title: "Zdobycie Berlina", type: "quiz", desc: "Maj 1945 r. i bezwarunkowa kapitulacja", icon: "🏛️" },
+      { id: 23, title: "Hiroszima i Pacyfik", type: "true_false", desc: "Bomba atomowa i koniec walk", icon: "☢️" },
+      { id: 24, title: "META: Koniec II Wojny!", type: "meta", desc: "2 IX 1945 r. – Pokój na świecie", icon: "🏁" }
+    ];
+
+    const questionsDatabase = [
+      {
+        tileIds: [1],
+        type: "quiz",
+        category: "Napaść na Polskę",
+        question: "Kto dowodził bohaterską obroną polskiej placówki na Westerplatte przez 7 dni września 1939 r.?",
+        options: ["mjr Henryk Sucharski", "kpt. Władysław Raginis", "gen. Franciszek Kleeberg", "Stefan Starzyński"],
+        correct: 0,
+        explanation: "Obroną Westerplatte (1–7 września 1939 r.) dowodził mjr Henryk Sucharski. Obrońcy powstrzymywali ostrzał pancernika Schleswig-Holstein i naloty znacznie dłużej niż zakładane kilkanaście godzin."
+      },
+      {
+        tileIds: [1],
+        type: "quiz",
+        category: "Kampania Wrześniowa",
+        question: "W jakiej bitwie 1 września polska kawaleria stawiła skuteczny opór niemieckim czołgom dzięki broni przeciwpancernej?",
+        options: ["Pod Mokrą", "Pod Kockiem", "Nad Bzurą", "Pod Wizną"],
+        correct: 0,
+        explanation: "1 września 1939 r. w bitwie pod Mokrą polska Wołyńska Brygada Kawalerii skutecznie zatrzymała niemieckie oddziały pancerne, korzystając z działek i karabinów przeciwpancernych."
+      },
+      {
+        tileIds: [2],
+        type: "true_false",
+        category: "Postawa Sojuszników",
+        question: "Prawda czy Fałsz: Francja i Wielka Brytania wypowiedziały Niemcom wojnę 3 września 1939 r., lecz nie podjęły realnych działań zaczepnych (tzw. dziwna wojna).",
+        options: ["PRAWDA", "FAŁSZ"],
+        correct: 0,
+        explanation: "PRAWDA! Choć sojusznicy formalnie wypowiedzieli wojnę 3 września, podjęli decyzję o braku natarcia lądowego na Niemcy, co nazwano dziwną lub siedzącą wojną."
+      },
+      {
+        tileIds: [3],
+        type: "quiz",
+        category: "Bohaterowie Września",
+        question: "Które starcie kampanii wrześniowej z powodu ogromnej dysproporcji sił zyskało miano „polskich Termopili”?",
+        options: ["Obrona Wizny pod kpt. Raginisem", "Obrona Poczty w Gdańsku", "Bitwa pod Kockiem", "Bitwa nad Bzurą"],
+        correct: 0,
+        explanation: "Obrona Wizny (7–10 września 1939 r.), w której kilkuset Polaków pod dowództwem kpt. Władysława Raginisa stawiało czoła kilkudziesięciu tysiącom żołnierzy niemieckich, nazywana jest polskimi Termopilami."
+      },
+      {
+        tileIds: [4],
+        type: "quiz",
+        category: "Agresja ZSRS",
+        question: "Jakim kłamliwym pretekstem Związek Sowiecki uzasadniał napaść na Polskę 17 września 1939 roku w nocie Mołotowa?",
+        options: [
+          "Koniecznością wzięcia pod opiekę ludności ukraińskiej i białoruskiej",
+          "Obronną przed atakiem Japonii",
+          "Prowokacją graniczną pod Gliwicami",
+          "Zgodą rządu w Londynie"
+        ],
+        correct: 0,
+        explanation: "W nocie wręczonej polskiemu ambasadorowi Mołotow twierdził, że państwo polskie rzekomo przestało istnieć, a Armia Czerwona wkracza, by 'chronić' ludność zachodniej Ukrainy i Białorusi."
+      },
+      {
+        tileIds: [6],
+        type: "true_false",
+        category: "Wojna Zimowa",
+        question: "Prawda czy Fałsz: Podczas wojny zimowej (1939–1940) Finlandia została całkowicie wcielona do ZSRS i utraciła niepodległość.",
+        options: ["PRAWDA", "FAŁSZ"],
+        correct: 1,
+        explanation: "FAŁSZ! Mimo ogromnej przewagi ZSRS, bohaterscy Finowie obronili niepodległość państwa, tracąc w traktacie pokojowym z marca 1940 r. jedynie około 10% terytorium."
+      },
+      {
+        tileIds: [7],
+        type: "quiz",
+        category: "Podbój Europy",
+        question: "Jaka polska jednostka wsławiła się w walkach o ważny norweski port Narwik w 1940 roku?",
+        options: [
+          "Samodzielna Brygada Strzelców Podhalańskich",
+          "Samodzielna Brygada Strzelców Karpackich",
+          "Armia Poznań generała Kutrzeby",
+          "1. Dywizja Pancerna"
+        ],
+        correct: 0,
+        explanation: "W bitwie o port Narwik w Norwegii w 1940 r. bohaterski udział wzięła polska Samodzielna Brygada Strzelców Podhalańskich."
+      },
+      {
+        tileIds: [8],
+        type: "quiz",
+        category: "Bitwa o Anglię",
+        question: "Który polski dywizjon myśliwski odegrał legendarną rolę w odpieraniu nalotów Luftwaffe w bitwie o Anglię (1940 r.)?",
+        options: ["Dywizjon 303", "Dywizjon 300", "Batalion Zośka", "Legiony Polskie"],
+        correct: 0,
+        explanation: "Polski Dywizjon 303 im. Tadeusza Kościuszki okazał się jedną z najskuteczniejszych jednostek myśliwskich całej bitwy o Anglię."
+      },
+      {
+        tileIds: [10],
+        type: "true_false",
+        category: "Front Wschodni",
+        question: "Prawda czy Fałsz: Plan ataku III Rzeszy na Związek Sowiecki z 22 czerwca 1941 r. nosił kryptonim „Barbarossa”.",
+        options: ["PRAWDA", "FAŁSZ"],
+        correct: 0,
+        explanation: "PRAWDA! Operacja ataku na ZSRS rozpoczęta o świcie 22 czerwca 1941 r. nosiła kryptonim 'Barbarossa' i zakładała szybki Blitzkrieg przed nadejściem zimy."
+      },
+      {
+        tileIds: [11],
+        type: "quiz",
+        category: "Pacyfik i USA",
+        question: "Jakie wydarzenie z 7 grudnia 1941 r. bezpośrednio spowodowało przystąpienie Stanów Zjednoczonych do II wojny światowej?",
+        options: [
+          "Niespodziewany atak Japonii na bazę Pearl Harbor",
+          "Zatopienie statku Lusitania",
+          "Konferencja w Teheranie",
+          "Podpisanie Karty atlantyckiej"
+        ],
+        correct: 0,
+        explanation: "7 grudnia 1941 r. japońskie lotnictwo zaatakowało amerykańską bazę floty w Pearl Harbor na Hawajach. Następnego dnia prezydent Roosevelt ogłosił stan wojny."
+      },
+      {
+        tileIds: [12],
+        type: "quiz",
+        category: "Wojna w Afryce",
+        question: "Kto dowodził siłami alianckimi, które jesienią 1942 r. rozbiły wojska feldmarszałka Rommla w przełomowej bitwie pod El Alamein?",
+        options: ["gen. Bernard Montgomery", "gen. Dwight Eisenhower", "gen. Douglas MacArthur", "gen. Charles de Gaulle"],
+        correct: 0,
+        explanation: "W bitwie pod El Alamein (październik–listopad 1942 r.) w Egipcie siły alianckie pod wodzą brytyjskiego gen. Bernarda Montgomery'ego pokonały niemiecko-włoski Afrika Korps."
+      },
+      {
+        tileIds: [13],
+        type: "true_false",
+        category: "Wojna na Morzu",
+        question: "Prawda czy Fałsz: Niemiecka taktyka „wilczych stad” polegała na skoordynowanych atakach grup okrętów podwodnych (U-bootów) na alianckie konwoje.",
+        options: ["PRAWDA", "FAŁSZ"],
+        correct: 0,
+        explanation: "PRAWDA! U-booty łączyły się w grupy ('wilcze stada') w celu przełamywania obrony niszczycieli i masowego topienia statków transportowych z zaopatrzeniem."
+      },
+      {
+        tileIds: [14],
+        type: "quiz",
+        category: "Przełom na Wschodzie",
+        question: "W której wielomiesięcznej i krwawej bitwie miejskiej (1942–1943) okrążona 6. Armia niemiecka poniosła klęskę będącą punktem zwrotnym wojny?",
+        options: ["W bitwie o Stalingrad", "W bitwie pod Moskwą", "W obronie Leningradu", "W bitwie pod Kurskiem"],
+        correct: 0,
+        explanation: "Klęska Niemców pod Stalingradem (luty 1943 r.) i wzięcie do niewoli armii feldmarszałka Paulusa załamały ofensywę III Rzeszy i oddały inicjatywę strategiczną ZSRS."
+      },
+      {
+        tileIds: [16],
+        type: "true_false",
+        category: "Bitwa Pancerna",
+        question: "Prawda czy Fałsz: Bitwa na Łuku Kurskim w lipcu 1943 r. była największą bitwą pancerną w dziejach II wojny światowej.",
+        options: ["PRAWDA", "FAŁSZ"],
+        correct: 0,
+        explanation: "PRAWDA! Starcie na Łuku Kurskim z udziałem tysięcy czołgów (m.in. T-34, Tygrysów i Panter) zakończyło się klęską Niemiec i ich trwałym odwrotem na wschód."
+      },
+      {
+        tileIds: [17],
+        type: "quiz",
+        category: "Holokaust i Pomoc",
+        question: "Jak nazywała się polska podziemna organizacja konspiracyjna ratująca Żydów przed zagładą, w której działała m.in. Irena Sendlerowa?",
+        options: ["Rada Pomocy Żydom „Żegota”", "Komitet Wolnej Francji", "Szare Szeregi", "Związek Walki Zbrojnej"],
+        correct: 0,
+        explanation: "Rada Pomocy Żydom 'Żegota' była unikalną państwową organizacją podziemną ratującą Żydów poprzez wyrabianie fałszywych dokumentów, ukrywanie dzieci i pomoc finansową."
+      },
+      {
+        tileIds: [18],
+        type: "quiz",
+        category: "Front Włoski",
+        question: "Która polska jednostka pod dowództwem gen. Władysława Andersa zdobyła w maju 1944 r. ufortyfikowany klasztor na Monte Cassino?",
+        options: ["2. Korpus Polski", "1. Dywizja Piechoty", "Samodzielna Brygada Spadochronowa", "Armia Krajowa"],
+        correct: 0,
+        explanation: "W maju 1944 r. żołnierze 2. Korpusu Polskich Sił Zbrojnych pod wodzą gen. Władysława Andersa zdobyli ruiny klasztoru Monte Cassino, otwierając aliantom drogę do Rzymu."
+      },
+      {
+        tileIds: [19],
+        type: "quiz",
+        category: "Droga do Zwycięstwa",
+        question: "W którym regionie Francji 6 czerwca 1944 r. (D-Day) alianci pod dowództwem gen. Eisenhowera przeprowadzili największy desant morski w historii?",
+        options: ["W Normandii", "W Bretanii", "Na Lazurowym Wybrzeżu", "W Dunkierce"],
+        correct: 0,
+        explanation: "Operacja Overlord rozpoczęła się 6 czerwca 1944 r. lądowaniem wojsk amerykańskich, brytyjskich i kanadyjskich na plażach Normandii, otwierając drugi front w Europie."
+      },
+      {
+        tileIds: [21],
+        type: "quiz",
+        category: "Konferencje Mocarstw",
+        question: "Na której konferencji Wielkiej Trójki (luty 1945 r.) zadecydowano o podziale Niemiec na strefy okupacyjne oraz przesunięciu granic Polski bez jej zgody?",
+        options: ["W Jałcie", "W Teheranie", "W Poczdamie", "W Casablance"],
+        correct: 0,
+        explanation: "Na konferencji w Jałcie na Krymie (luty 1945 r.) Churchill, Roosevelt i Stalin przypieczętowali powojenny ład i oddanie Polski do sowieckiej strefy wpływów."
+      },
+      {
+        tileIds: [22],
+        type: "quiz",
+        category: "Koniec Wojny w Europie",
+        question: "W których dniach maja 1945 roku podpisano akt bezwarunkowej kapitulacji III Rzeszy, kończący wojnę w Europie?",
+        options: ["W nocy z 8 na 9 maja 1945 r.", "1 września 1945 r.", "2 maja 1945 r.", "6 czerwca 1945 r."],
+        correct: 0,
+        explanation: "Akt bezwarunkowej kapitulacji Niemiec wszedł w życie w nocy z 8 na 9 maja 1945 r. (ze względu na różnicę czasu w Moskwie świętowano 9 maja, na Zachodzie 8 maja)."
+      },
+      {
+        tileIds: [23],
+        type: "true_false",
+        category: "Pacyfik",
+        question: "Prawda czy Fałsz: Bezwarunkowa kapitulacja Cesarstwa Japonii podpisana 2 września 1945 r. na pancerniku USS Missouri ostatecznie zakończyła II wojnę światową.",
+        options: ["PRAWDA", "FAŁSZ"],
+        correct: 0,
+        explanation: "PRAWDA! Po zrzuceniu bomb atomowych na Hiroszimę i Nagasaki delegacja japońska podpisała kapitulację 2 września 1945 r., co stanowi definitywny koniec konfliktu światowego."
+      }
+    ];
+
+    let gameState = {
+      p1: { name: "Dywizjon 303", pos: 0, score: 0, color: "emerald" },
+      p2: { name: "Cichociemni", pos: 0, score: 0, color: "cyan" },
+      activePlayer: 1, // 1 lub 2
+      isRolling: false,
+      waitingHandover: false,
+      currentRoll: 0,
+      totalTiles: 24,
+      usedQuestions: []
+    };
+
+    // Referencje do elementów DOM
+    const startScreen = document.getElementById("startScreen");
+    const gameBoardScreen = document.getElementById("gameBoardScreen");
+    const victoryScreen = document.getElementById("victoryScreen");
+    const playerStatusBar = document.getElementById("playerStatusBar");
+    const handoverModal = document.getElementById("handoverModal");
+    const questionModal = document.getElementById("questionModal");
+    const rulesModal = document.getElementById("rulesModal");
+
+    function renderBoard() {
+      const container = document.getElementById("boardContainer");
+      container.innerHTML = "";
+
+      boardTiles.forEach((tile) => {
+        const isP1Here = gameState.p1.pos === tile.id;
+        const isP2Here = gameState.p2.pos === tile.id;
+
+        let badgeBg = "bg-slate-800/80 border-slate-700";
+        if (tile.type === "chance") badgeBg = "bg-amber-950/40 border-amber-500/50 text-amber-300";
+        if (tile.type === "penalty") badgeBg = "bg-rose-950/40 border-rose-500/50 text-rose-300";
+        if (tile.type === "meta") badgeBg = "bg-emerald-950/60 border-emerald-400 text-emerald-300";
+
+        const tileEl = document.createElement("div");
+        tileEl.id = `tile-${tile.id}`;
+        tileEl.className = `p-3 rounded-2xl border transition-all duration-300 flex items-center justify-between ${badgeBg} relative shadow-sm`;
+
+        // Lewa strona: numer i opis
+        tileEl.innerHTML = `
+          <div class="flex items-center space-x-3">
+            <div class="w-8 h-8 rounded-xl bg-slate-900 border border-slate-700 flex items-center justify-center font-bold text-xs text-amber-400 shrink-0">
+              ${tile.id}
+            </div>
+            <div>
+              <div class="font-bold text-xs text-white flex items-center space-x-1">
+                <span>${tile.icon}</span>
+                <span>${tile.title}</span>
+              </div>
+              <div class="text-[10px] text-slate-400 leading-tight">${tile.desc}</div>
+            </div>
+          </div>
+          <!-- Pionki graczy na kafelku -->
+          <div class="flex items-center space-x-1.5 shrink-0" id="pawns-slot-${tile.id}">
+            ${isP1Here ? `<span class="w-6 h-6 rounded-full bg-emerald-500 text-slate-950 font-black flex items-center justify-center text-[10px] shadow-lg ring-2 ring-emerald-300 pulse-animation" title="${gameState.p1.name}">P1</span>` : ''}
+            ${isP2Here ? `<span class="w-6 h-6 rounded-full bg-cyan-500 text-slate-950 font-black flex items-center justify-center text-[10px] shadow-lg ring-2 ring-cyan-300 pulse-animation" title="${gameState.p2.name}">P2</span>` : ''}
+          </div>
+        `;
+        container.appendChild(tileEl);
+      });
+
+      // Auto-scroll do aktualnego gracza
+      const currentPos = gameState.activePlayer === 1 ? gameState.p1.pos : gameState.p2.pos;
+      const activeEl = document.getElementById(`tile-${currentPos}`);
+      if (activeEl) {
+        activeEl.scrollIntoView({ behavior: "smooth", block: "center" });
+      }
+    }
+
+    function updatePlayerStatus() {
+      document.getElementById("p1Pos").innerText = gameState.p1.pos;
+      document.getElementById("p1Score").innerText = gameState.p1.score;
+      document.getElementById("p2Pos").innerText = gameState.p2.pos;
+      document.getElementById("p2Score").innerText = gameState.p2.score;
+
+      const p1Badge = document.getElementById("p1Badge");
+      const p2Badge = document.getElementById("p2Badge");
+      const activeName = document.getElementById("activePlayerName");
+      const activeIndicator = document.getElementById("activePlayerIndicator");
+
+      if (gameState.activePlayer === 1) {
+        p1Badge.classList.remove("opacity-60", "border-transparent");
+        p1Badge.classList.add("border-emerald-500", "bg-emerald-950/50");
+        p2Badge.classList.add("opacity-60", "border-transparent");
+        p2Badge.classList.remove("border-cyan-500", "bg-cyan-950/50");
+
+        activeName.innerText = gameState.p1.name;
+        activeName.className = "text-emerald-400 font-extrabold";
+        activeIndicator.className = "w-3.5 h-3.5 rounded-full bg-emerald-500 ring-4 ring-emerald-500/20 animate-pulse";
+      } else {
+        p2Badge.classList.remove("opacity-60", "border-transparent");
+        p2Badge.classList.add("border-cyan-500", "bg-cyan-950/50");
+        p1Badge.classList.add("opacity-60", "border-transparent");
+        p1Badge.classList.remove("border-emerald-500", "bg-emerald-950/50");
+
+        activeName.innerText = gameState.p2.name;
+        activeName.className = "text-cyan-400 font-extrabold";
+        activeIndicator.className = "w-3.5 h-3.5 rounded-full bg-cyan-500 ring-4 ring-cyan-500/20 animate-pulse";
+      }
+    }
+
+    function handleDiceRoll() {
+      if (gameState.isRolling) return;
+      gameState.isRolling = true;
+      playSound('dice');
+
+      const diceBtn = document.getElementById("rollDiceBtn");
+      const diceCube = document.getElementById("diceCube");
+      const resultText = document.getElementById("diceResultText");
+
+      diceBtn.disabled = true;
+      diceBtn.classList.add("opacity-50");
+      diceCube.classList.add("dice-rolling");
+
+      // Zakres 1-4 dla zrównoważonego tempa lekcyjnego
+      const rolled = Math.floor(Math.random() * 4) + 1;
+      gameState.currentRoll = rolled;
+
+      let counter = 0;
+      const interval = setInterval(() => {
+        diceCube.innerText = Math.floor(Math.random() * 4) + 1;
+        counter++;
+        if (counter > 8) {
+          clearInterval(interval);
+          diceCube.innerText = rolled;
+          diceCube.classList.remove("dice-rolling");
+          resultText.innerText = `Wyrzucono: ${rolled}!`;
+          animatePlayerMove(rolled);
+        }
+      }, 60);
+    }
+
+    function animatePlayerMove(steps) {
+      let currentSteps = 0;
+      const playerKey = gameState.activePlayer === 1 ? 'p1' : 'p2';
+
+      const moveInterval = setInterval(() => {
+        if (currentSteps < steps && gameState[playerKey].pos < gameState.totalTiles) {
+          gameState[playerKey].pos += 1;
+          currentSteps++;
+          playSound('step');
+          renderBoard();
+          updatePlayerStatus();
+        } else {
+          clearInterval(moveInterval);
+          setTimeout(() => {
+            handleTileAction();
+          }, 350);
+        }
+      }, 250);
+    }
+
+    function handleTileAction() {
+      const playerKey = gameState.activePlayer === 1 ? 'p1' : 'p2';
+      const currentPos = gameState[playerKey].pos;
+      const tile = boardTiles.find(t => t.id === currentPos);
+
+      // Warunek dotarcia do mety
+      if (currentPos >= gameState.totalTiles) {
+        triggerVictory();
+        return;
+      }
+
+      // Pola Szansy / Przeszkody
+      if (tile.type === "chance") {
+        handleChanceTile(tile);
+        return;
+      }
+      if (tile.type === "penalty") {
+        handlePenaltyTile(tile);
+        return;
+      }
+
+      // Standardowe pole zadania z bazy pytań
+      displayQuestionModal(tile);
+    }
+
+    function handleChanceTile(tile) {
+      playSound('correct');
+      const playerKey = gameState.activePlayer === 1 ? 'p1' : 'p2';
+      const playerName = gameState[playerKey].name;
+
+      if (tile.id === 5) {
+        // Enigma: ruch do przodu o 2 pola
+        gameState[playerKey].pos = Math.min(gameState.totalTiles, gameState[playerKey].pos + 2);
+        gameState[playerKey].score += 10;
+        showQuickNotice("Sukces Enigmy! 📻", `${playerName} korzysta z meldunków rozszyfrowanych przez polskich matematyków! +10 pkt i ruch o 2 pola naprzód.`);
+      } else if (tile.id === 15) {
+        // Lend-Lease: punkty
+        gameState[playerKey].score += 20;
+        showQuickNotice("Wsparcie Lend-Lease! 📦", `${playerName} otrzymuje transport nowoczesnego zaopatrzenia z USA! +20 dodatkowych punktów.`);
+      }
+      renderBoard();
+      updatePlayerStatus();
+      prepareHandover();
+    }
+
+    function handlePenaltyTile(tile) {
+      playSound('wrong');
+      const playerKey = gameState.activePlayer === 1 ? 'p1' : 'p2';
+      const playerName = gameState[playerKey].name;
+
+      if (tile.id === 9) {
+        // Błoto i mróz pod Moskwą
+        gameState[playerKey].pos = Math.max(0, gameState[playerKey].pos - 1);
+        showQuickNotice("Generał Mróz i Błoto! 🌨️", `Surowa zima i grząskie drogi zatrzymują natarcie ${playerName}. Cofasz się o 1 pole.`);
+      } else if (tile.id === 20) {
+        // Market Garden
+        gameState[playerKey].pos = Math.max(0, gameState[playerKey].pos - 1);
+        showQuickNotice("Zacięty opór pod Arnhem! 🪂", `Most okazał się za daleko! ${playerName} musi wycofać się o 1 pole.`);
+      }
+      renderBoard();
+      updatePlayerStatus();
+      prepareHandover();
+    }
+
+    function displayQuestionModal(tile) {
+      // Znajdź pytanie pasujące do kafelka lub weź losowe z bazy
+      let candidates = questionsDatabase.filter(q => q.tileIds.includes(tile.id));
+      if (candidates.length === 0) {
+        candidates = questionsDatabase;
+      }
+
+      // Losuj pytanie, preferując jeszcze nieużywane
+      let questionObj = candidates.find(q => !gameState.usedQuestions.includes(q.question));
+      if (!questionObj) {
+        questionObj = candidates[Math.floor(Math.random() * candidates.length)];
+      }
+      gameState.usedQuestions.push(questionObj.question);
+
+      const playerKey = gameState.activePlayer === 1 ? 'p1' : 'p2';
+      const playerTag = document.getElementById("questionPlayerTag");
+      playerTag.innerText = gameState[playerKey].name;
+      playerTag.className = gameState.activePlayer === 1 ? "text-emerald-400 font-bold" : "text-cyan-400 font-bold";
+
+      document.getElementById("questionCategoryBadge").innerText = questionObj.category || "Pole Wiedzy";
+      document.getElementById("questionTitle").innerText = tile.title;
+      document.getElementById("questionText").innerText = questionObj.question;
+
+      const optionsBox = document.getElementById("optionsContainer");
+      const feedbackBox = document.getElementById("feedbackContainer");
+      optionsBox.innerHTML = "";
+      feedbackBox.classList.add("hidden");
+
+      questionObj.options.forEach((optText, index) => {
+        const btn = document.createElement("button");
+        btn.className = "w-full text-left p-3 rounded-xl border border-slate-700 bg-slate-950/80 hover:bg-slate-800 text-xs text-white transition flex items-center justify-between";
+        btn.innerHTML = `
+          <span>${optText}</span>
+          <span class="w-5 h-5 rounded-full border border-slate-600 flex items-center justify-center text-[10px] text-slate-400">${String.fromCharCode(65 + index)}</span>
+        `;
+
+        btn.onclick = () => {
+          evaluateAnswer(index, questionObj.correct, questionObj.explanation, btn);
+        };
+        optionsBox.appendChild(btn);
+      });
+
+      questionModal.classList.remove("hidden");
+    }
+
+    function evaluateAnswer(chosenIndex, correctIndex, explanation, buttonEl) {
+      const optionsBox = document.getElementById("optionsContainer");
+      const buttons = optionsBox.querySelectorAll("button");
+      buttons.forEach(b => b.disabled = true);
+
+      const feedbackBox = document.getElementById("feedbackContainer");
+      const feedbackTitle = document.getElementById("feedbackTitle");
+      const feedbackExplanation = document.getElementById("feedbackExplanation");
+      const playerKey = gameState.activePlayer === 1 ? 'p1' : 'p2';
+
+      feedbackBox.classList.remove("hidden");
+
+      if (chosenIndex === correctIndex) {
+        playSound('correct');
+        buttonEl.classList.remove("border-slate-700", "bg-slate-950/80");
+        buttonEl.classList.add("border-emerald-500", "bg-emerald-950/70", "text-emerald-300");
+
+        feedbackBox.className = "p-3 rounded-xl text-xs space-y-2 border border-emerald-500/50 bg-emerald-950/40 text-emerald-200";
+        feedbackTitle.innerHTML = "<span>✅ Świetna odpowiedź! (+10 pkt)</span>";
+        gameState[playerKey].score += 10;
+      } else {
+        playSound('wrong');
+        buttonEl.classList.remove("border-slate-700", "bg-slate-950/80");
+        buttonEl.classList.add("border-rose-500", "bg-rose-950/70", "text-rose-300");
+
+        // Wskaż poprawną odpowiedź
+        if (buttons[correctIndex]) {
+          buttons[correctIndex].classList.add("border-emerald-500", "bg-emerald-950/50");
+        }
+
+        feedbackBox.className = "p-3 rounded-xl text-xs space-y-2 border border-rose-500/50 bg-rose-950/40 text-rose-200";
+        feedbackTitle.innerHTML = "<span>❌ Błędna odpowiedź! (Cofasz się o 1 pole)</span>";
+
+        // Kara: cofnięcie o 1 pole
+        gameState[playerKey].pos = Math.max(0, gameState[playerKey].pos - 1);
+      }
+
+      feedbackExplanation.innerText = explanation;
+      updatePlayerStatus();
+      renderBoard();
+
+      document.getElementById("closeQuestionBtn").onclick = () => {
+        questionModal.classList.add("hidden");
+        prepareHandover();
+      };
+    }
+
+    function prepareHandover() {
+      // Zmiana gracza
+      gameState.activePlayer = gameState.activePlayer === 1 ? 2 : 1;
+      updatePlayerStatus();
+
+      const nextKey = gameState.activePlayer === 1 ? 'p1' : 'p2';
+      const nextName = gameState[nextKey].name;
+      const handoverAvatar = document.getElementById("handoverAvatar");
+      const nextPlayerNameEl = document.getElementById("nextPlayerName");
+
+      nextPlayerNameEl.innerText = nextName;
+
+      if (gameState.activePlayer === 1) {
+        nextPlayerNameEl.className = "text-emerald-400 font-extrabold text-sm";
+        handoverAvatar.className = "w-16 h-16 rounded-full mx-auto flex items-center justify-center text-3xl border-2 border-emerald-500 bg-emerald-950/40 text-emerald-400";
+      } else {
+        nextPlayerNameEl.className = "text-cyan-400 font-extrabold text-sm";
+        handoverAvatar.className = "w-16 h-16 rounded-full mx-auto flex items-center justify-center text-3xl border-2 border-cyan-500 bg-cyan-950/40 text-cyan-400";
+      }
+
+      // Odblokuj kość
+      const diceBtn = document.getElementById("rollDiceBtn");
+      diceBtn.disabled = false;
+      diceBtn.classList.remove("opacity-50");
+      gameState.isRolling = false;
+      document.getElementById("diceResultText").innerText = "Rzuć kością";
+
+      handoverModal.classList.remove("hidden");
+    }
+
+    document.getElementById("handoverConfirmBtn").addEventListener("click", () => {
+      handoverModal.classList.add("hidden");
+      renderBoard();
+    });
+
+    function showQuickNotice(title, message) {
+      const noticeModal = document.createElement("div");
+      noticeModal.className = "fixed inset-0 bg-slate-950/85 z-50 flex items-center justify-center p-4 backdrop-blur-sm";
+      noticeModal.innerHTML = `
+        <div class="bg-slate-900 border border-slate-700 w-full max-w-xs rounded-2xl p-4 text-center space-y-3 shadow-2xl">
+          <h4 class="font-bold text-amber-400 text-sm">${title}</h4>
+          <p class="text-xs text-slate-300 leading-relaxed">${message}</p>
+          <button class="w-full py-2 bg-slate-800 hover:bg-slate-700 text-white font-bold rounded-lg text-xs uppercase tracking-wider">
+            Zrozumiałem
+          </button>
+        </div>
+      `;
+      noticeModal.querySelector("button").onclick = () => {
+        document.body.removeChild(noticeModal);
+      };
+      document.body.appendChild(noticeModal);
+    }
+
+    function triggerVictory() {
+      playSound('victory');
+      gameBoardScreen.classList.add("hidden");
+      playerStatusBar.classList.add("hidden");
+      victoryScreen.classList.remove("hidden");
+
+      const p1 = gameState.p1;
+      const p2 = gameState.p2;
+
+      document.getElementById("vP1Name").innerText = p1.name;
+      document.getElementById("vP1Score").innerText = `${p1.score} pkt`;
+      document.getElementById("vP1Pos").innerText = `Pole: ${p1.pos}`;
+
+      document.getElementById("vP2Name").innerText = p2.name;
+      document.getElementById("vP2Score").innerText = `${p2.score} pkt`;
+      document.getElementById("vP2Pos").innerText = `Pole: ${p2.pos}`;
+
+      const winnerText = document.getElementById("winnerText");
+      if (p1.score > p2.score) {
+        winnerText.innerHTML = `<span class="text-emerald-400">${p1.name}</span> (Większa liczba punktów!)`;
+      } else if (p2.score > p1.score) {
+        winnerText.innerHTML = `<span class="text-cyan-400">${p2.name}</span> (Większa liczba punktów!)`;
+      } else {
+        winnerText.innerHTML = `<span class="text-amber-400">REMIS!</span> Obaj gracze uzyskali po ${p1.score} pkt!`;
+      }
+    }
+
+    document.getElementById("startGameBtn").addEventListener("click", () => {
+      initAudio();
+      const p1Name = document.getElementById("player1Input").value.trim() || "Dywizjon 303";
+      const p2Name = document.getElementById("player2Input").value.trim() || "Cichociemni";
+
+      gameState.p1.name = p1Name;
+      gameState.p2.name = p2Name;
+
+      document.getElementById("p1DisplayTag").innerText = p1Name;
+      document.getElementById("p2DisplayTag").innerText = p2Name;
+
+      startScreen.classList.add("hidden");
+      playerStatusBar.classList.remove("hidden");
+      gameBoardScreen.classList.remove("hidden");
+
+      renderBoard();
+      updatePlayerStatus();
+    });
+
+    document.getElementById("rollDiceBtn").addEventListener("click", handleDiceRoll);
+    document.getElementById("diceCube").addEventListener("click", handleDiceRoll);
+
+    document.getElementById("soundToggleBtn").addEventListener("click", () => {
+      soundEnabled = !soundEnabled;
+      document.getElementById("soundIcon").innerText = soundEnabled ? "🔊" : "🔇";
+    });
+
+    document.getElementById("rulesBtn").addEventListener("click", () => {
+      rulesModal.classList.remove("hidden");
+    });
+    document.getElementById("closeRulesBtn").addEventListener("click", () => {
+      rulesModal.classList.add("hidden");
+    });
+    document.getElementById("rulesGotItBtn").addEventListener("click", () => {
+      rulesModal.classList.add("hidden");
+    });
+
+    document.getElementById("restartGameBtn").addEventListener("click", () => {
+      gameState.p1.pos = 0;
+      gameState.p1.score = 0;
+      gameState.p2.pos = 0;
+      gameState.p2.score = 0;
+      gameState.activePlayer = 1;
+      gameState.usedQuestions = [];
+      gameState.isRolling = false;
+
+      victoryScreen.classList.add("hidden");
+      startScreen.classList.remove("hidden");
+    });
+  </script>
+</body>
+</html>
